@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>World Capitals — Quiz (HTML + CSS)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#05060a;
+      --panel:#071433; /* dark blue shade */
+      --accent:#0b63c6;
+      --white:#ffffff;
+      --green:#0aa05a;
+      --red:#e53935;
+      --glass: rgba(255,255,255,0.04);
+      --card-radius:18px;
+      --max-width:980px;
+    }
+    /* Global reset */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; padding:24px; background: radial-gradient(1200px 600px at 10% 20%, rgba(8,20,48,0.6), transparent 10%), linear-gradient(180deg,#000000 0%, #02030a 60%);
+      color:var(--white); font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      display:flex; justify-content:center; align-items:flex-start; gap:20px;
+    }
+    .container{
+      width:100%; max-width:var(--max-width);
+      background: linear-gradient(180deg, rgba(7,20,51,0.6), rgba(2,6,20,0.6));
+      border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(2,6,20,0.8);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    /* NAVBAR */
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px;
+    }
+    .brand{font-family:'Lobster', cursive; font-size:28px; color:var(--white);}
+    nav{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .nav-link{background:transparent; color:var(--white); padding:8px 12px; border-radius:10px; text-decoration:none; font-weight:600}
+    .nav-link:hover{background:rgba(255,255,255,0.03); box-shadow:0 4px 14px rgba(11,99,198,0.08)}
+
+    /* language selector */
+    .lang{background:var(--glass); padding:6px; border-radius:10px}
+    select{background:transparent; color:var(--white); border:none; outline:none; font-weight:600}
+
+    /* layout */
+    .main{
+      display:grid; grid-template-columns: 1fr 360px; gap:20px; align-items:start;
+    }
+    @media (max-width:980px){.main{grid-template-columns:1fr}}
+
+    /* Game area */
+    .game-area{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:20px; border-radius:var(--card-radius); min-height:480px;}
+    .game-card{max-width:100%; margin:0 auto; border-radius:14px; padding:22px; background:linear-gradient(180deg, rgba(7,20,51,0.65), rgba(4,10,30,0.6)); border:1px solid rgba(255,255,255,0.03); box-shadow:0 10px 30px rgba(2,6,20,0.6)}
+
+    .title{font-family:'Lobster', cursive; font-size:38px; color:var(--white); margin:0 0 10px}
+    .subtitle{font-size:14px; color:rgba(255,255,255,0.7); margin-bottom:16px}
+
+    /* Cards for questions implemented with anchor-target navigation */
+    .stack{position:relative}
+    .card{display:none; opacity:0; transform:scale(.98); transition:opacity .45s ease, transform .45s ease;}
+    .card:target{display:block; opacity:1; transform:scale(1)}
+    /* default show first card */
+    .card:first-of-type{display:block; opacity:1; transform:scale(1)}
+
+    .progress{font-weight:700; margin-bottom:12px}
+    .question{font-size:26px; margin:12px 0 18px}
+
+    /* choices */
+    .choices{display:flex; flex-direction:column; gap:12px}
+    .choice{display:block; padding:14px 16px; border-radius:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03); cursor:pointer; font-weight:700}
+    .choice:hover{transform:translateY(-3px); box-shadow:0 6px 20px rgba(11,99,198,0.06)}
+    .choice:active{transform:scale(.98)}
+
+    /* hidden radios + feedback using sibling selectors */
+    input[type=radio]{display:none}
+
+    /* each label becomes interactive; feedback blocks follow each set */
+    .feedback{margin-top:12px; display:none; padding:12px 14px; border-radius:10px}
+    /* mark correct when correct radio checked */
+    /* We'll give each correct radio an id like q1a3 -> then show .correct-feedback */
+    /* For Q1 example: #q1a2:checked ~ .fb-q1-correct {display:block} */
+
+    /* IMPORTANT: we'll include specific rules per question to show correct/incorrect feedback */
+
+    /* navigation buttons */
+    .controls{display:flex; gap:12px; margin-top:18px}
+    .btn{display:inline-block; padding:10px 16px; border-radius:12px; background:linear-gradient(180deg,var(--accent), #053b88); color:var(--white); text-decoration:none; font-weight:800}
+    .btn:hover{transform:translateY(-3px); box-shadow:0 10px 30px rgba(11,99,198,0.15)}
+    .btn:active{transform:scale(.95)}
+
+    /* side panel */
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:16px; border-radius:16px}
+    .panel h4{margin:0 0 10px}
+    .meta{font-size:13px; color:rgba(255,255,255,0.8); margin-bottom:10px}
+    .flag{width:100%; height:120px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:linear-gradient(120deg, rgba(255,255,255,0.02), rgba(11,99,198,0.03));}
+
+    /* subtle slow animations for decorative icons */
+    .decor{opacity:0.12; position:absolute; right:12px; top:12px; transform:rotate(-10deg); width:120px}
+    .decor svg{animation:slowFloat 8s ease-in-out infinite}
+    @keyframes slowFloat{0%{transform:translateY(0) rotate(-10deg)}50%{transform:translateY(-6px) rotate(-8deg)}100%{transform:translateY(0) rotate(-10deg)}}
+
+    /* Footer */
+    footer{margin-top:14px; text-align:center; color:rgba(255,255,255,0.7); font-size:13px}
+    footer a{color:var(--accent); text-decoration:none}
+
+    /* Specific per-question feedback rules (CSS-only) */
+    /* Q1: Paris is correct (q1a2) */
+    #q1a2:checked ~ .fb-q1-correct{display:block; background:linear-gradient(90deg, rgba(10,160,90,0.12), rgba(10,160,90,0.06)); border-left:4px solid var(--green); color:var(--white)}
+    #q1a1:checked ~ .fb-q1-wrong, #q1a3:checked ~ .fb-q1-wrong, #q1a4:checked ~ .fb-q1-wrong{display:block; background:linear-gradient(90deg, rgba(229,57,53,0.08), rgba(229,57,53,0.03)); border-left:4px solid var(--red); color:var(--white)}
+
+    /* Q2: Nairobi is correct (q2a3) */
+    #q2a3:checked ~ .fb-q2-correct{display:block; background:linear-gradient(90deg, rgba(10,160,90,0.12), rgba(10,160,90,0.06)); border-left:4px solid var(--green)}
+    #q2a1:checked ~ .fb-q2-wrong, #q2a2:checked ~ .fb-q2-wrong, #q2a4:checked ~ .fb-q2-wrong{display:block; background:linear-gradient(90deg, rgba(229,57,53,0.08), rgba(229,57,53,0.03)); border-left:4px solid var(--red)}
+
+    /* Q3: Tokyo is correct (q3a1) */
+    #q3a1:checked ~ .fb-q3-correct{display:block;background:linear-gradient(90deg, rgba(10,160,90,0.12), rgba(10,160,90,0.06)); border-left:4px solid var(--green)}
+    #q3a2:checked ~ .fb-q3-wrong, #q3a3:checked ~ .fb-q3-wrong, #q3a4:checked ~ .fb-q3-wrong{display:block;background:linear-gradient(90deg, rgba(229,57,53,0.08), rgba(229,57,53,0.03)); border-left:4px solid var(--red)}
+
+    /* Q4: Canberra correct (q4a4) */
+    #q4a4:checked ~ .fb-q4-correct{display:block;background:linear-gradient(90deg, rgba(10,160,90,0.12), rgba(10,160,90,0.06)); border-left:4px solid var(--green)}
+    #q4a1:checked ~ .fb-q4-wrong, #q4a2:checked ~ .fb-q4-wrong, #q4a3:checked ~ .fb-q4-wrong{display:block;background:linear-gradient(90deg, rgba(229,57,53,0.08), rgba(229,57,53,0.03)); border-left:4px solid var(--red)}
+
+    /* Q5: Brasília correct (q5a2) */
+    #q5a2:checked ~ .fb-q5-correct{display:block;background:linear-gradient(90deg, rgba(10,160,90,0.12), rgba(10,160,90,0.06)); border-left:4px solid var(--green)}
+    #q5a1:checked ~ .fb-q5-wrong, #q5a3:checked ~ .fb-q5-wrong, #q5a4:checked ~ .fb-q5-wrong{display:block;background:linear-gradient(90deg, rgba(229,57,53,0.08), rgba(229,57,53,0.03)); border-left:4px solid var(--red)}
+
+    /* small utility */
+    .muted{color:rgba(255,255,255,0.6); font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">WorldCaps</div>
+      <nav>
+        <a class="nav-link" href="#home">Home</a>
+        <a class="nav-link" href="#asia">Asia</a>
+        <a class="nav-link" href="#europe">Europe</a>
+        <a class="nav-link" href="#africa">Africa</a>
+        <a class="nav-link" href="#americas">Americas</a>
+        <a class="nav-link" href="#oceania">Oceania</a>
+        <div class="lang"><select aria-label="language selector"><option>English</option><option>한국어</option><option>Русский</option></select></div>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="game-area">
+        <div class="game-card">
+          <h1 class="title">World Capitals — Quick Quiz</h1>
+          <p class="subtitle">Choose the correct capital. This prototype uses only HTML & CSS (no JavaScript). Some interactive features (leaderboards, adaptive difficulty, streaks) require JavaScript or a backend — I can add those if you allow JS later.</p>
+
+          <!-- Decorative image -->
+          <div class="decor" aria-hidden>
+            <svg width="140" height="120" viewBox="0 0 140 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 110c30-40 80-60 120-40" stroke="white" stroke-opacity="0.08" stroke-width="6" stroke-linecap="round"/></svg>
+          </div>
+
+          <div class="stack">
+            <!-- QUESTION 1 -->
+            <article id="q1" class="card">
+              <div class="progress">Question 1 of 5</div>
+              <div class="question">Which city is the capital of France?</div>
+
+              <!-- radios -->
+              <form>
+                <input type="radio" name="q1" id="q1a1" /> <label class="choice" for="q1a1">Lyon</label>
+                <input type="radio" name="q1" id="q1a2" /> <label class="choice" for="q1a2">Paris</label>
+                <input type="radio" name="q1" id="q1a3" /> <label class="choice" for="q1a3">Marseille</label>
+                <input type="radio" name="q1" id="q1a4" /> <label class="choice" for="q1a4">Nice</label>
+
+                <div class="fb-q1-correct feedback">✅ Correct — Paris is the capital of France. Paris is a global center for art, fashion and culture.</div>
+                <div class="fb-q1-wrong feedback">❌ Incorrect — The capital of France is Paris, not the option you chose.</div>
+
+                <div class="controls">
+                  <a class="btn" href="#q2">Next →</a>
+                </div>
+              </form>
+            </article>
+
+            <!-- QUESTION 2 (Africa, medium) -->
+            <article id="q2" class="card">
+              <div class="progress">Question 2 of 5</div>
+              <div class="question">What is the capital of Kenya?</div>
+              <form>
+                <input type="radio" name="q2" id="q2a1" /> <label class="choice" for="q2a1">Kisumu</label>
+                <input type="radio" name="q2" id="q2a2" /> <label class="choice" for="q2a2">Mombasa</label>
+                <input type="radio" name="q2" id="q2a3" /> <label class="choice" for="q2a3">Nairobi</label>
+                <input type="radio" name="q2" id="q2a4" /> <label class="choice" for="q2a4">Nakuru</label>
+
+                <div class="fb-q2-correct feedback">✅ Correct — Nairobi is Kenya's capital and its largest city.</div>
+                <div class="fb-q2-wrong feedback">❌ Incorrect — Nairobi is the capital of Kenya.</div>
+
+                <div class="controls">
+                  <a class="btn" href="#q1">← Prev</a>
+                  <a class="btn" href="#q3">Next →</a>
+                </div>
+              </form>
+            </article>
+
+            <!-- QUESTION 3 (Asia, medium-hard) -->
+            <article id="q3" class="card">
+              <div class="progress">Question 3 of 5</div>
+              <div class="question">Which city is the capital of Japan?</div>
+              <form>
+                <input type="radio" name="q3" id="q3a1" /> <label class="choice" for="q3a1">Tokyo</label>
+                <input type="radio" name="q3" id="q3a2" /> <label class="choice" for="q3a2">Osaka</label>
+                <input type="radio" name="q3" id="q3a3" /> <label class="choice" for="q3a3">Kyoto</label>
+                <input type="radio" name="q3" id="q3a4" /> <label class="choice" for="q3a4">Sapporo</label>
+
+                <div class="fb-q3-correct feedback">✅ Correct — Tokyo is Japan's capital and one of the world's largest metro areas.</div>
+                <div class="fb-q3-wrong feedback">❌ Incorrect — Tokyo is the capital of Japan.</div>
+
+                <div class="controls">
+                  <a class="btn" href="#q2">← Prev</a>
+                  <a class="btn" href="#q4">Next →</a>
+                </div>
+              </form>
+            </article>
+
+            <!-- QUESTION 4 (Oceania, harder) -->
+            <article id="q4" class="card">
+              <div class="progress">Question 4 of 5</div>
+              <div class="question">What is the capital of Australia?</div>
+              <form>
+                <input type="radio" name="q4" id="q4a1" /> <label class="choice" for="q4a1">Sydney</label>
+                <input type="radio" name="q4" id="q4a2" /> <label class="choice" for="q4a2">Melbourne</label>
+                <input type="radio" name="q4" id="q4a3" /> <label class="choice" for="q4a3">Perth</label>
+                <input type="radio" name="q4" id="q4a4" /> <label class="choice" for="q4a4">Canberra</label>
+
+                <div class="fb-q4-correct feedback">✅ Correct — Canberra is the capital of Australia (not Sydney or Melbourne).</div>
+                <div class="fb-q4-wrong feedback">❌ Incorrect — Canberra is Australia's capital.</div>
+
+                <div class="controls">
+                  <a class="btn" href="#q3">← Prev</a>
+                  <a class="btn" href="#q5">Next →</a>
+                </div>
+              </form>
+            </article>
+
+            <!-- QUESTION 5 (Americas, hard) -->
+            <article id="q5" class="card">
+              <div class="progress">Question 5 of 5</div>
+              <div class="question">Which city is the capital of Brazil?</div>
+              <form>
+                <input type="radio" name="q5" id="q5a1" /> <label class="choice" for="q5a1">Rio de Janeiro</label>
+                <input type="radio" name="q5" id="q5a2" /> <label class="choice" for="q5a2">Brasília</label>
+                <input type="radio" name="q5" id="q5a3" /> <label class="choice" for="q5a3">São Paulo</label>
+                <input type="radio" name="q5" id="q5a4" /> <label class="choice" for="q5a4">Salvador</label>
+
+                <div class="fb-q5-correct feedback">✅ Correct — Brasília is the capital of Brazil; it was built in the 1960s as the planned capital.</div>
+                <div class="fb-q5-wrong feedback">❌ Incorrect — Brasília is the capital of Brazil.</div>
+
+                <div class="controls">
+                  <a class="btn" href="#q4">← Prev</a>
+                  <a class="btn" href="#results">Finish</a>
+                </div>
+              </form>
+            </article>
+
+            <!-- RESULTS CARD (static; no JS scoring) -->
+            <article id="results" class="card">
+              <div class="progress">Result</div>
+              <div class="question">Quiz Complete — summary</div>
+              <p class="muted">This HTML/CSS prototype shows per-question feedback but cannot compute a full score without JavaScript. To enable scoring, adaptive difficulty, streaks, sound, and leaderboards, I can add a small JavaScript file — tell me and I'll provide it.</p>
+              <div style="margin-top:12px" class="feedback" style="display:block; background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(11,99,198,0.02));">
+                ✅ Tip: After each question you can see whether your selected answer is correct. For a full score display + progress bar we need JS.
+              </div>
+              <div class="controls" style="margin-top:18px">
+                <a class="btn" href="#q1">Play again</a>
+                <a class="btn" href="#home">Back to menu</a>
+              </div>
+            </article>
+
+          </div>
+
+        </div>
+      </section>
+
+      <aside class="panel">
+        <h4>Quick Info</h4>
+        <p class="meta">Mode: <strong>Practice</strong> · Theme: <strong>Minimal Flags</strong></p>
+        <div class="flag" aria-hidden>
+          <!-- minimalistic SVG flags (decorative) -->
+          <svg width="220" height="80" viewBox="0 0 220 80"><rect width="220" height="80" fill="#fff" rx="8"/><rect x="0" y="0" width="73.33" height="80" fill="#bb133e" rx="8"/><rect x="146.66" y="0" width="73.33" height="80" fill="#0b6b2d" rx="8"/></svg>
+        </div>
+
+        <h4 style="margin-top:12px">How to play</h4>
+        <p class="muted">Select an answer — feedback will appear below the choices. Use Next to move to the next question. This prototype is fully responsive and uses CSS animations for transitions.</p>
+
+        <h4 style="margin-top:10px">Settings</h4>
+        <p class="muted">Language selector (top-right) is visual here. To enable sounds, streaks, leaderboards and adaptive difficulty, allow a small JavaScript file (I can write it).</p>
+      </aside>
+    </main>
+
+   <footer>
+  <button onclick="window.open('https://chatgpt.com/share/68d3a2c4-81d8-8001-b9fb-bfbf880947e5', '_blank')" 
+          style="padding:10px 20px; margin:15px 0; border:none; border-radius:8px; 
+                 background-color:#1e90ff; color:white; font-family:'Lobster', cursive; 
+                 font-size:16px; cursor:pointer;">
+    Chat History
+  </button>
+</footer>
+  </div>
+</body>
+</html>
