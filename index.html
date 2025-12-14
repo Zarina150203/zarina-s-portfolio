@@ -12,6 +12,12 @@
 
   <style>
     body {
+      <!-- CSV parsing -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<!-- Charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
       margin: 0;
       font-family: 'Roboto', sans-serif;
       background: linear-gradient(to bottom, #000000, #0a1a3f);
@@ -289,62 +295,131 @@
 </footer>
 
 <script>
-let data=[], headers=[], chart;
-fileInput.addEventListener('change', e=>{
-  Papa.parse(e.target.files[0],{header:true,dynamicTyping:true,complete:r=>{
-    data=r.data.filter(x=>Object.keys(x).length>1);
-    headers=Object.keys(data[0]);
-    preview(); stats(); clues();
-  }});
+let data = [];
+let headers = [];
+let chart = null;
+
+// Safe DOM references
+const fileInputEl = document.getElementById('fileInput');
+const previewEl = document.getElementById('preview');
+const statsEl = document.getElementById('stats');
+const cluesEl = document.getElementById('clues');
+const anomaliesEl = document.getElementById('anomalies');
+const histCanvas = document.getElementById('hist');
+
+fileInputEl.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  Papa.parse(file, {
+    header: true,
+    dynamicTyping: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      data = results.data.filter(r => Object.keys(r).length > 1);
+      headers = Object.keys(data[0]);
+
+      preview();
+      stats();
+      clues();
+    }
+  });
 });
 
-function preview(){
-  let h='<table><tr>'+headers.map(x=>`<th>${x}</th>`).join('')+'</tr>';
-  data.slice(0,10).forEach(r=>h+='<tr>'+headers.map(x=>`<td>${r[x]}</td>`).join('')+'</tr>');
-  preview.innerHTML=h+'</table>';
-}
+function preview() {
+  let html = '<table><tr>' +
+    headers.map(h => `<th>${h}</th>`).join('') +
+    '</tr>';
 
-function stats(){
-  let h='<table><tr><th>Column</th><th>Mean</th><th>Min</th><th>Max</th></tr>';
-  headers.forEach(c=>{
-    let n=data.map(r=>r[c]).filter(v=>typeof v==='number');
-    if(n.length) h+=`<tr><td>${c}</td><td>${avg(n).toFixed(2)}</td><td>${Math.min(...n)}</td><td>${Math.max(...n)}</td></tr>`;
+  data.slice(0, 10).forEach(row => {
+    html += '<tr>' +
+      headers.map(h => `<td>${row[h]}</td>`).join('') +
+      '</tr>';
   });
-  stats.innerHTML=h+'</table>';
+
+  previewEl.innerHTML = html + '</table>';
 }
 
-function clues(){
-  let o='';
-  headers.forEach(c=>{
-    let v=data.map(r=>r[c]);
-    let n=v.filter(x=>typeof x==='number');
-    if(n.length && Math.max(...n)>avg(n)*5) o+=`${c}: extreme values detected\n`;
+function stats() {
+  let html = '<table><tr><th>Column</th><th>Mean</th><th>Min</th><th>Max</th></tr>';
+
+  headers.forEach(col => {
+    const nums = data.map(r => r[col]).filter(v => typeof v === 'number');
+    if (nums.length) {
+      html += `
+        <tr>
+          <td>${col}</td>
+          <td>${avg(nums).toFixed(2)}</td>
+          <td>${Math.min(...nums)}</td>
+          <td>${Math.max(...nums)}</td>
+        </tr>`;
+    }
   });
-  clues.textContent=o||'No obvious red flags.';
+
+  statsEl.innerHTML = html + '</table>';
 }
 
-function drawHistogram(){
-  let c=headers.find(h=>typeof data[0][h]==='number');
-  if(!c) return;
-  let n=data.map(r=>r[c]);
-  if(chart) chart.destroy();
-  chart=new Chart(hist,{type:'bar',data:{labels:n.slice(0,20),datasets:[{data:n.slice(0,20)}]}});
-}
+function clues() {
+  let output = '';
 
-function zScoreAnomalies(){
-  let h='<table><tr><th>Column</th><th>Count</th></tr>';
-  headers.forEach(c=>{
-    let n=data.map(r=>r[c]).filter(v=>typeof v==='number');
-    if(!n.length) return;
-    let m=avg(n), s=Math.sqrt(avg(n.map(x=>(x-m)**2)));
-    let k=n.filter(x=>Math.abs((x-m)/s)>3).length;
-    if(k) h+=`<tr><td>${c}</td><td>${k}</td></tr>`;
+  headers.forEach(col => {
+    const nums = data.map(r => r[col]).filter(v => typeof v === 'number');
+    if (!nums.length) return;
+
+    const m = avg(nums);
+    if (Math.max(...nums) > m * 5) {
+      output += `${col}: extreme high values detected\n`;
+    }
   });
-  anomalies.innerHTML=h+'</table>';
+
+  cluesEl.textContent = output || 'No obvious red flags detected.';
 }
 
-const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+function drawHistogram() {
+  const col = headers.find(h => typeof data[0][h] === 'number');
+  if (!col) return alert('No numeric column found');
+
+  const nums = data.map(r => r[col]).slice(0, 20);
+
+  if (chart) chart.destroy();
+
+  const ctx = histCanvas.getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: nums.map((_, i) => i + 1),
+      datasets: [{
+        label: col,
+        data: nums
+      }]
+    }
+  });
+}
+
+function zScoreAnomalies() {
+  let html = '<table><tr><th>Column</th><th>Count</th></tr>';
+
+  headers.forEach(col => {
+    const nums = data.map(r => r[col]).filter(v => typeof v === 'number');
+    if (!nums.length) return;
+
+    const mean = avg(nums);
+    const std = Math.sqrt(avg(nums.map(n => (n - mean) ** 2)));
+
+    const count = nums.filter(n => Math.abs((n - mean) / std) > 3).length;
+    if (count > 0) {
+      html += `<tr><td>${col}</td><td>${count}</td></tr>`;
+    }
+  });
+
+  anomaliesEl.innerHTML = html + '</table>';
+}
+
+function avg(arr) {
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
 </script>
+
 
 </body>
 </html>
