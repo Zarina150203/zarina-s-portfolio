@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DD Clues Analyzer</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    h1 { color: #222; }
+    .box {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: left;
+    }
+    th { background: #eee; }
+    button {
+      padding: 8px 12px;
+      margin: 5px 0;
+      cursor: pointer;
+    }
+    canvas { max-width: 100%; }
+  </style>
+</head>
+<body>
+
+<h1>DD Clues – Browser-Based Analyzer</h1>
+
+<div class="box">
+  <h3>1. Upload CSV</h3>
+  <input type="file" id="fileInput" accept=".csv" />
+</div>
+
+<div class="box">
+  <h3>2. Data Preview</h3>
+  <div id="preview"></div>
+</div>
+
+<div class="box">
+  <h3>3. Descriptive Statistics</h3>
+  <div id="stats"></div>
+</div>
+
+<div class="box">
+  <h3>4. DD Clue Summary</h3>
+  <pre id="clues"></pre>
+</div>
+
+<div class="box">
+  <h3>5. Visualizations</h3>
+  <button onclick="drawHistogram()">Histogram (first numeric column)</button>
+  <canvas id="chart"></canvas>
+</div>
+
+<script>
+let data = [];
+let headers = [];
+
+// Load CSV
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  Papa.parse(e.target.files[0], {
+    header: true,
+    dynamicTyping: true,
+    complete: function(results) {
+      data = results.data.filter(r => Object.keys(r).length > 1);
+      headers = Object.keys(data[0]);
+      previewData();
+      descriptiveStats();
+      ddClues();
+    }
+  });
+});
+
+// Preview
+function previewData() {
+  let html = '<table><tr>';
+  headers.forEach(h => html += `<th>${h}</th>`);
+  html += '</tr>';
+
+  data.slice(0, 10).forEach(row => {
+    html += '<tr>';
+    headers.forEach(h => html += `<td>${row[h]}</td>`);
+    html += '</tr>';
+  });
+  html += '</table>';
+
+  document.getElementById('preview').innerHTML = html;
+}
+
+// Descriptive statistics
+function descriptiveStats() {
+  let html = '<table><tr><th>Column</th><th>Mean</th><th>Min</th><th>Max</th></tr>';
+
+  headers.forEach(h => {
+    let nums = data.map(r => r[h]).filter(v => typeof v === 'number');
+    if (nums.length > 0) {
+      let mean = nums.reduce((a,b)=>a+b,0)/nums.length;
+      html += `<tr><td>${h}</td><td>${mean.toFixed(2)}</td><td>${Math.min(...nums)}</td><td>${Math.max(...nums)}</td></tr>`;
+    }
+  });
+
+  html += '</table>';
+  document.getElementById('stats').innerHTML = html;
+}
+
+// DD Clues
+function ddClues() {
+  let output = '';
+
+  headers.forEach(h => {
+    let values = data.map(r => r[h]);
+    let nums = values.filter(v => typeof v === 'number');
+
+    if (nums.length > 0) {
+      let mean = nums.reduce((a,b)=>a+b,0)/nums.length;
+      let max = Math.max(...nums);
+      let min = Math.min(...nums);
+      if (max > mean * 5) {
+        output += `${h}: extreme high values detected\n`;
+      }
+      if (min < mean / 5) {
+        output += `${h}: extreme low values detected\n`;
+      }
+    } else {
+      let counts = {};
+      values.forEach(v => counts[v] = (counts[v] || 0) + 1);
+      let top = Object.values(counts).sort((a,b)=>b-a)[0];
+      if (top / values.length > 0.7) {
+        output += `${h}: high dominance category (>70%)\n`;
+      }
+    }
+  });
+
+  document.getElementById('clues').textContent = output || 'No obvious red flags detected.';
+}
+
+// Histogram
+let chart;
+function drawHistogram() {
+  let col = headers.find(h => typeof data[0][h] === 'number');
+  if (!col) return alert('No numeric column found');
+
+  let nums = data.map(r => r[col]);
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById('chart'), {
+    type: 'bar',
+    data: {
+      labels: nums.slice(0,20).map((_,i)=>i+1),
+      datasets: [{ label: col, data: nums.slice(0,20) }]
+    }
+  });
+}
+</script>
+
+</body>
+</html>
