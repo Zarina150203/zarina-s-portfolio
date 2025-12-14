@@ -1,10 +1,18 @@
+<!-- UPDATED PORTFOLIO WITH EMBEDDED DD CLUES ANALYZER TOOL -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zarina's Portfolio</title>
+
+  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Lobster&family=Roboto&display=swap" rel="stylesheet">
+
+  <!-- External libs for DD tool -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -26,28 +34,29 @@
       align-items: center;
       box-shadow: 0 2px 8px rgba(0,0,0,0.6);
     }
+
     header h1 {
       font-family: 'Lobster', cursive;
       font-size: 28px;
       margin: 0;
       color: #4fa3ff;
     }
+
     nav a {
       margin: 0 15px;
       color: #f0f0f0;
       text-decoration: none;
       font-weight: bold;
-      transition: color 0.3s;
-    }
-    nav a:hover {
-      color: #4fa3ff;
     }
 
+    nav a:hover { color: #4fa3ff; }
+
     section {
-      padding: 100px 50px 60px;
-      max-width: 1000px;
+      padding: 110px 50px 70px;
+      max-width: 1100px;
       margin: auto;
     }
+
     h2 {
       font-family: 'Lobster', cursive;
       font-size: 32px;
@@ -56,205 +65,202 @@
       text-align: center;
     }
 
-    .project-card {
+    /* ===== DD TOOL STYLES ===== */
+    .dd-container {
       background: #0f1b3d;
-      padding: 20px;
-      margin: 15px 0;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
-    .project-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.8);
-    }
-    .project-card a {
-      color: #4fa3ff;
-      text-decoration: none;
-      font-weight: bold;
+      border-radius: 14px;
+      padding: 25px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
     }
 
-    .skills-list {
-      list-style: none;
-      padding: 0;
-      text-align: center;
-    }
-    .skills-list li {
-      background: #1a2d5c;
-      display: inline-block;
-      margin: 5px;
-      padding: 10px 15px;
-      border-radius: 6px;
-      transition: background 0.3s, transform 0.3s;
-    }
-    .skills-list li:hover {
-      background: #2a45a5;
-      transform: scale(1.05);
-    }
-
-    .flashcards {
+    .dd-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 20px;
-      margin-top: 30px;
     }
-    .card {
-      perspective: 1000px;
+
+    .dd-card {
+      background: #1a2d5c;
+      padding: 18px;
+      border-radius: 12px;
     }
-    .card-inner {
-      position: relative;
+
+    .dd-card h3 { margin-top: 0; color: #4fa3ff; }
+
+    input[type=file], button {
       width: 100%;
-      height: 180px;
-      text-align: center;
-      transition: transform 0.8s;
-      transform-style: preserve-3d;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: none;
+    }
+
+    button {
+      background: #4fa3ff;
+      color: #08102a;
+      font-weight: bold;
       cursor: pointer;
     }
-    .card:hover .card-inner {
-      transform: rotateY(180deg);
-    }
-    .card-front, .card-back {
-      position: absolute;
+
+    button:hover { background: #79b8ff; }
+
+    table {
       width: 100%;
-      height: 100%;
-      backface-visibility: hidden;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 18px;
-      padding: 15px;
+      border-collapse: collapse;
+      font-size: 13px;
     }
-    .card-front {
-      background: #0f1b3d;
-      color: #4fa3ff;
+
+    th, td {
+      border-bottom: 1px solid #2a45a5;
+      padding: 6px;
+      text-align: left;
     }
-    .card-back {
-      background: #1a2d5c;
-      color: #f0f0f0;
-      transform: rotateY(180deg);
+
+    th { color: #4fa3ff; }
+
+    pre {
+      background: #08102a;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
     }
+
+    canvas { max-height: 300px; }
 
     footer {
       background: #08102a;
       text-align: center;
       padding: 20px;
-      margin-top: 40px;
       color: #aaa;
-    }
-    footer a {
-      color: #4fa3ff;
-      text-decoration: none;
-    }
-    footer a:hover {
-      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Zarina's Portfolio</h1>
-    <nav>
-      <a href="#about">About</a>
-      <a href="#projects">Projects</a>
-      <a href="#skills">Skills</a>
-      <a href="#docs">Google Docs</a>
-      <a href="#contact">Contact</a>
-    </nav>
-  </header>
 
-  <!-- About Section -->
-  <section id="about">
-    <h2>About Me</h2>
-    <p style="text-align:center;">
-      Hi, I'm <strong>Zarina</strong>, a 22-year-old undergraduate student at 
-      <strong>Dong-a University</strong> from <strong>Uzbekistan</strong>. <br>
-      My academic interests include <em>economics, startups, programming, international relations, human rights, and philosophy</em>.
-    </p>
+<header>
+  <h1>Zarina's Portfolio</h1>
+  <nav>
+    <a href="#about">About</a>
+    <a href="#projects">Projects</a>
+    <a href="#skills">Skills</a>
+    <a href="#dd">DD Tool</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
 
-    <div class="flashcards">
-      <div class="card">
-        <div class="card-inner">
-          <div class="card-front">💻 Programming</div>
-          <div class="card-back">I enjoy building projects with HTML, CSS, and Python.</div>
-        </div>
+<!-- DD CLUES TOOL SECTION -->
+<section id="dd">
+  <h2>📊 DD Clues Analyzer</h2>
+  <p style="text-align:center;">A browser-based due-diligence & anomaly detection tool (CSV only)</p>
+
+  <div class="dd-container">
+    <div class="dd-grid">
+      <div class="dd-card">
+        <h3>1. Upload CSV</h3>
+        <input type="file" id="fileInput" accept=".csv">
       </div>
-      <div class="card">
-        <div class="card-inner">
-          <div class="card-front">📊 Economics</div>
-          <div class="card-back">I’m interested in international economics and research.</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-inner">
-          <div class="card-front">🌍 International Relations</div>
-          <div class="card-back">Passionate about global issues and human rights.</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-inner">
-          <div class="card-front">📚 Philosophy</div>
-          <div class="card-back">I value deep thinking and exploring new ideas.</div>
-        </div>
+
+      <div class="dd-card">
+        <h3>2. DD Clue Summary</h3>
+        <pre id="clues">Upload a CSV to generate clues.</pre>
       </div>
     </div>
-  </section>
 
-  <!-- Projects Section -->
-  <section id="projects">
-    <h2>My Projects</h2>
-    <div class="project-card">
-      <h3>🌍 Capitals Quiz Game (Original)</h3>
-      <p>A quiz game that tests knowledge of world capitals.</p>
-      <a href="https://zarina150203.github.io/zarina-s-portfolio/game.html" target="_blank">Play Game</a>
+    <div class="dd-card" style="margin-top:20px;">
+      <h3>3. Data Preview</h3>
+      <div id="preview"></div>
     </div>
-    <div class="project-card">
-      <h3>🌍 Capitals Quiz Game (Updated)</h3>
-      <p>Improved version of the capitals quiz with enhanced design and features.</p>
-      <a href="https://zarina150203.github.io/zarina-s-portfolio/newgame.html" target="_blank">Play Updated Game</a>
+
+    <div class="dd-card" style="margin-top:20px;">
+      <h3>4. Descriptive Statistics</h3>
+      <div id="stats"></div>
     </div>
-  </section>
 
-  <!-- Skills Section -->
-  <section id="skills">
-    <h2>Skills</h2>
-    <ul class="skills-list">
-      <li>HTML & CSS</li>
-      <li>JavaScript (basic)</li>
-      <li>Python (beginner)</li>
-      <li>Research & Data Analysis</li>
-      <li>Project Management</li>
-      <li>Problem Solving</li>
-    </ul>
-  </section>
+    <div class="dd-grid" style="margin-top:20px;">
+      <div class="dd-card">
+        <h3>5. Histogram</h3>
+        <button onclick="drawHistogram()">Generate</button>
+        <canvas id="hist"></canvas>
+      </div>
 
-  <!-- Google Docs Section -->
-  <section id="docs">
-    <h2>Google Docs Prompt File</h2>
-    <p style="text-align:center;">
-      📄 You can view my document here: <br><br>
-      <a href="https://docs.google.com/document/d/1pPB0zGe4K4cQKtAvOixM1ciqvzXXCFx_pSWHwSVq760/edit?usp=sharing" target="_blank">
-        Open Google Docs Prompt File
-      </a>
-    </p>
-  </section>
+      <div class="dd-card">
+        <h3>6. Z-Score Anomalies</h3>
+        <button onclick="zScoreAnomalies()">Detect</button>
+        <div id="anomalies"></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <!-- Contact Section -->
-  <section id="contact">
-    <h2>Contact</h2>
-    <p style="text-align:center;">
-      📧 Email: <a href="mailto:your-email@example.com">your-email@example.com</a><br>
-      🐙 GitHub: <a href="https://github.com/zarina150203" target="_blank">github.com/zarina150203</a>
-    </p>
-  </section>
+<script>
+let data=[], headers=[], chart;
 
- <footer>
-    <p>© 2025 Zarina | 
-      <a href="https://github.com/zarina150203" target="_blank">GitHub</a> | 
-      <a href="https://chat.deepseek.com/share/7m4odgbs285vc5uwk5" target="_blank">my learning journey of Python fundamentals</a> | 
-      <a href="https://colab.research.google.com/drive/1zsg0guresCLHpUI7AqFr1jiPGWBaEayS?usp=sharing" target="_blank">my python fundamentals learning history</a>
-    </p>
-  </footer>
+fileInput.addEventListener('change', e => {
+  Papa.parse(e.target.files[0], {
+    header:true,
+    dynamicTyping:true,
+    complete:r=>{
+      data=r.data.filter(x=>Object.keys(x).length>1);
+      headers=Object.keys(data[0]);
+      previewData(); descriptiveStats(); ddClues();
+    }
+  });
+});
+
+function previewData(){
+  let h='<table><tr>'+headers.map(x=>`<th>${x}</th>`).join('')+'</tr>';
+  data.slice(0,10).forEach(r=>h+='<tr>'+headers.map(c=>`<td>${r[c]}</td>`).join('')+'</tr>');
+  preview.innerHTML=h+'</table>';
+}
+
+function descriptiveStats(){
+  let h='<table><tr><th>Column</th><th>Mean</th><th>Min</th><th>Max</th></tr>';
+  headers.forEach(c=>{
+    let n=data.map(r=>r[c]).filter(v=>typeof v==='number');
+    if(n.length) h+=`<tr><td>${c}</td><td>${avg(n).toFixed(2)}</td><td>${Math.min(...n)}</td><td>${Math.max(...n)}</td></tr>`;
+  });
+  stats.innerHTML=h+'</table>';
+}
+
+function ddClues(){
+  let o='';
+  headers.forEach(c=>{
+    let v=data.map(r=>r[c]);
+    let n=v.filter(x=>typeof x==='number');
+    if(n.length){ let m=avg(n); if(Math.max(...n)>m*5) o+=`${c}: extreme highs\n`; }
+    else{
+      let f={}; v.forEach(x=>f[x]=(f[x]||0)+1);
+      if(Math.max(...Object.values(f))/v.length>0.7) o+=`${c}: dominant category\n`;
+    }
+  });
+  clues.textContent=o||'No obvious red flags detected.';
+}
+
+function drawHistogram(){
+  let c=headers.find(x=>typeof data[0][x]==='number');
+  if(!c) return alert('No numeric column');
+  let n=data.map(r=>r[c]); if(chart) chart.destroy();
+  chart=new Chart(hist,{type:'bar',data:{labels:n.slice(0,20).map((_,i)=>i+1),datasets:[{label:c,data:n.slice(0,20)}]}});
+}
+
+function zScoreAnomalies(){
+  let h='<table><tr><th>Column</th><th>Count</th></tr>';
+  headers.forEach(c=>{
+    let n=data.map(r=>r[c]).filter(v=>typeof v==='number');
+    if(!n.length) return;
+    let m=avg(n), s=Math.sqrt(avg(n.map(x=>(x-m)**2)));
+    let cnt=n.filter(x=>Math.abs((x-m)/s)>3).length;
+    if(cnt) h+=`<tr><td>${c}</td><td>${cnt}</td></tr>`;
+  });
+  anomalies.innerHTML=h+'</table>';
+}
+
+function avg(a){return a.reduce((x,y)=>x+y,0)/a.length}
+</script>
+
+<footer>
+  <p>© 2025 Zarina | Data • Economics • Research</p>
+</footer>
+
 </body>
 </html>
