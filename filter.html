@@ -1,0 +1,188 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Keyword Dataset Filter</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f2f2f2;
+        padding: 30px;
+    }
+    h1 {
+        text-align: center;
+    }
+    input, select, button {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        font-size: 16px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        margin-top: 20px;
+    }
+    th, td {
+        border: 1px solid #ccc;
+        padding: 6px;
+        text-align: left;
+    }
+    th {
+        background: #eee;
+    }
+</style>
+
+</head>
+<body>
+
+<h1>Keyword Dataset Filter</h1>
+
+<input type="file" id="fileInput" accept=".csv">
+<input type="text" id="keyword" placeholder="Enter keyword (e.g. R-Delta)">
+
+<button onclick="filterData()">Filter by Keyword</button>
+
+<label>Select column to find single anomalies:</label>
+<select id="columnSelect"></select>
+
+<button onclick="filterColumnAnomalies()">Find Column Anomalies</button>
+<button onclick="downloadCSV()">Download CSV</button>
+
+<div id="result"></div>
+
+<script>
+let headers = [];
+let rows = [];
+let filteredRows = [];
+let anomalyRows = [];
+let currentView = "filtered";
+
+document.getElementById("fileInput").addEventListener("change", function(e) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        parseCSV(event.target.result);
+    };
+    reader.readAsText(e.target.files[0]);
+});
+
+function parseCSV(text) {
+    const lines = text.trim().split("\n");
+    headers = lines[0].split(",");
+    rows = lines.slice(1).map(line => line.split(","));
+    filteredRows = [];
+    anomalyRows = [];
+
+    populateColumnSelector();
+
+    document.getElementById("result").innerHTML =
+        `<p>Loaded <strong>${rows.length}</strong> rows.</p>`;
+}
+
+function populateColumnSelector() {
+    const select = document.getElementById("columnSelect");
+    select.innerHTML = "";
+    headers.forEach(header => {
+        const option = document.createElement("option");
+        option.value = header;
+        option.textContent = header;
+        select.appendChild(option);
+    });
+}
+
+function filterData() {
+    const keyword = document.getElementById("keyword").value.toLowerCase();
+    filteredRows = [];
+    anomalyRows = [];
+    currentView = "filtered";
+
+    rows.forEach(row => {
+        if (row.join(" ").toLowerCase().includes(keyword)) {
+            filteredRows.push(row);
+        }
+    });
+
+    displayTable(filteredRows, "Keyword Matches");
+}
+
+function filterColumnAnomalies() {
+    if (filteredRows.length === 0) {
+        alert("Filter by keyword first.");
+        return;
+    }
+
+    const column = document.getElementById("columnSelect").value;
+    const colIndex = headers.indexOf(column);
+
+    const valueCount = {};
+    anomalyRows = [];
+    currentView = "anomalies";
+
+    filteredRows.forEach(row => {
+        const value = row[colIndex];
+        valueCount[value] = (valueCount[value] || 0) + 1;
+    });
+
+    filteredRows.forEach(row => {
+        if (valueCount[row[colIndex]] === 1) {
+            anomalyRows.push(row);
+        }
+    });
+
+    displayTable(
+        anomalyRows,
+        `Single Anomalies by Column: ${column}`
+    );
+}
+
+function displayTable(data, title) {
+    let html = `<p><strong>${title}:</strong> ${data.length}</p>`;
+    html += "<table><tr>";
+
+    headers.forEach(h => html += `<th>${h}</th>`);
+    html += "</tr>";
+
+    data.forEach(row => {
+        html += "<tr>";
+        row.forEach(cell => html += `<td>${cell}</td>`);
+        html += "</tr>";
+    });
+
+    html += "</table>";
+    document.getElementById("result").innerHTML = html;
+}
+
+function downloadCSV() {
+    let dataToDownload =
+        currentView === "anomalies" ? anomalyRows : filteredRows;
+
+    if (dataToDownload.length === 0) {
+        alert("No data to download.");
+        return;
+    }
+
+    let csvContent = headers.join(",") + "\n";
+    dataToDownload.forEach(row => {
+        csvContent += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download =
+        currentView === "anomalies"
+        ? "column_anomalies.csv"
+        : "filtered_dataset.csv";
+
+    link.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
